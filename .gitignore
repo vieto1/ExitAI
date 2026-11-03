@@ -1,0 +1,8 @@
+.local/
+.runtime/
+.release/
+.env
+node_modules/
+watch/privacy.mjs
+research/*capture*.json
+research/*.html

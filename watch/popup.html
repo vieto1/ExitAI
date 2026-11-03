@@ -1,0 +1,8 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><title>ExitAI Watch</title><link rel="stylesheet" href="popup.css"><script type="module" src="popup.js"></script></head><body>
+<h1>◈ ExitAI Watch</h1><p>Schreibe sensible Prompts zuerst hier. Erst die geprüfte maskierte Fassung wird in die KI-Webseite eingefügt.</p>
+<label>Eigene Schutzbegriffe · ein Begriff pro Zeile<textarea id="terms" rows="3" placeholder="Jasmin Neufeld&#10;Müller GmbH"></textarea></label>
+<label>Dein Prompt<textarea id="prompt" rows="5" placeholder="Schreibe eine E-Mail an …"></textarea></label><button id="mask">Lokal maskieren</button>
+<label>Maskierte Fassung<textarea id="masked" rows="4" readonly></textarea></label><p id="count"></p><button id="insert" disabled>Maskierten Text ins aktive Eingabefeld einfügen</button>
+<hr><label>Antwort mit Platzhaltern<textarea id="answer" rows="3"></textarea></label><button id="restore">Letzte Zuordnung lokal wiederherstellen</button><pre id="restored"></pre>
+<p id="status" role="status"></p><small>Keine automatische Überwachung oder vollständige Erkennung. Namen und Firmen als Schutzbegriffe angeben. Originale niemals zuerst in die fremde Webseite tippen. Zuordnungen gelten nur für den letzten Prompt dieser Browser-Sitzung. Einfügen sendet den Prompt nicht ab.</small>
+</body></html>
