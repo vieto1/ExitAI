@@ -1,11 +1,15 @@
 import {decodeState} from '/state.js';
 const $=s=>document.querySelector(s);
+const sessionResponse=await fetch('/api/session');
+if(sessionResponse.status===401){location.replace('/login');throw new Error('Anmeldung erforderlich.');}
+if(!sessionResponse.ok){$('#status').textContent='Verbindung zum Server fehlgeschlagen. Bitte die Seite neu laden.';$('#status').style.display='block';throw new Error('Sitzung konnte nicht geladen werden.');}
+const runtime=await sessionResponse.json(),storageKey=runtime.mode==='central'?`exitai-v1:${runtime.user.username}`:'exitai-v1';
 const templates={summary:{title:'Dokument zusammenfassen',text:'Fasse die angehängten Dokumente zusammen. Nenne die wichtigsten Aussagen, offene Fragen und Quellen.'},email:{title:'E-Mail formulieren',text:'Formuliere eine freundliche, professionelle E-Mail anhand folgender Stichpunkte:\n\n'},ideas:{title:'Ideen entwickeln',text:'Entwickle fünf konkrete Ideen zu folgendem Thema. Nenne jeweils Nutzen, Aufwand und einen ersten Schritt:\n\n'}};
 let state={chats:[],documents:[],terms:'',prompts:[]},activeId=null,pending=null,busy=false;
-try{const saved=JSON.parse(localStorage.getItem('exitai-v1')??'null');if(saved){state=decodeState(saved);activeId=state.currentId;}}catch{}
+try{const saved=JSON.parse(localStorage.getItem(storageKey)??'null');if(saved){state=decodeState(saved);activeId=state.currentId;}}catch{}
 let toastTimer;
 function toast(text){$('#status').textContent=text;$('#status').style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#status').style.display='none',7000);}
-function save(){state.currentId=activeId;try{localStorage.setItem('exitai-v1',JSON.stringify(state));}catch{toast('Browser-Speicher voll oder gesperrt. Änderungen bleiben nur in dieser Sitzung.');}}
+function save(){state.currentId=activeId;try{localStorage.setItem(storageKey,JSON.stringify(state));}catch{toast('Browser-Speicher voll oder gesperrt. Änderungen bleiben nur in dieser Sitzung.');}}
 function el(tag,text,className){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(className)n.className=className;return n;}
 function current(){return state.chats.find(c=>c.id===activeId);}
 function view(name){document.querySelectorAll('.view').forEach(n=>n.classList.toggle('hidden',n.id!==`view-${name}`));document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.view===name));$('#view-title').textContent=({chat:'KI-Arbeitsbereich',knowledge:'Wissensbasis',prompts:'Prompt-Bibliothek',privacy:'Datenschutz',audit:'Audit & API'})[name];if(name==='audit')loadAudit();}
@@ -28,7 +32,7 @@ function render(){
   state.prompts.forEach((p,i)=>{const row=el('div');const b=el('button',p.title);b.onclick=()=>usePrompt(p.text);const del=el('button','Löschen');del.onclick=()=>{state.prompts.splice(i,1);save();render();};row.append(b,del);$('#custom-prompts').append(row);});
 }
 function usePrompt(text){if(busy)return;view('chat');$('#message').value=text;$('#message').focus();}
-async function api(path,data){const r=await fetch(path,{method:data?'POST':'GET',headers:data?{'Content-Type':'application/json'}:{},body:data?JSON.stringify(data):undefined});const result=await r.json();if(!r.ok)throw new Error(result.error??'Anfrage fehlgeschlagen.');return result;}
+async function api(path,data){const r=await fetch(path,{method:data?'POST':'GET',headers:data?{'Content-Type':'application/json'}:{},body:data?JSON.stringify(data):undefined});const result=await r.json();if(r.status===401&&runtime.mode==='central')location.assign('/login');if(!r.ok)throw new Error(result.error??'Anfrage fehlgeschlagen.');return result;}
 function setBusy(value){busy=value;$('#preview-button').disabled=value;$('#new-chat').disabled=value;$('#send').disabled=value;render();}
 document.querySelectorAll('.nav').forEach(n=>n.onclick=()=>view(n.dataset.view));
 $('#new-chat').onclick=()=>{if(busy)return;activeId=null;save();$('#message').value='';render();view('chat');};
@@ -77,12 +81,19 @@ $('#send').onclick=async()=>{
     toast(result.auditSaved?`Antwort erhalten · ${result.protectedFields} Angaben maskiert.`:'Antwort erhalten. Audit konnte nicht gespeichert werden.');
   }catch(err){toast(err.message);}finally{setBusy(false);}
 };
-$('#provider').onchange=()=>{$('#model').value=({ollama:'qwen2.5:3b',openai:'gpt-4.1-mini',anthropic:'claude-sonnet-4-5'})[$('#provider').value];state.provider=$('#provider').value;state.model=$('#model').value;save();$('#connection').textContent=$('#provider').value==='ollama'?'Lokaler Modellserver':'Maskierte Inhalte verlassen dein Gerät';};
+$('#provider').onchange=()=>{$('#model').value=({ollama:'qwen2.5:3b',openai:'gpt-4.1-mini',anthropic:'claude-sonnet-4-5'})[$('#provider').value];state.provider=$('#provider').value;state.model=$('#model').value;save();$('#connection').textContent=$('#provider').value==='ollama'?(runtime.mode==='central'?'Modell auf dem Team-Server':'Lokaler Modellserver'):'Maskierte Inhalte werden an den Cloud-Anbieter gesendet';};
 $('#model').onchange=()=>{state.model=$('#model').value;save();};
 async function init(){
+  if(runtime.mode==='central'){
+    $('#account-user').textContent=runtime.user.username;$('#logout').classList.remove('hidden');
+    $('.local-note').textContent='Team-Server · Verlauf in diesem Browser';
+    $('#storage-notice').textContent='Im Teambetrieb gehen Nachrichten und Originaldokumente über HTTPS an euren Server und werden dort vor einem Modellaufruf maskiert. Browserdaten werden nach Benutzername getrennt, bleiben aber im Browserprofil unverschlüsselt. Das Team-Audit enthält zusätzlich den Benutzernamen und ist Administratoren vorbehalten.';
+    if(runtime.role!=='admin')$('[data-view="audit"]').classList.add('hidden');
+    $('#logout').onclick=async()=>{try{await api('/api/auth/logout',{});location.assign('/login');}catch(error){toast(error.message);}};
+  }
   render();
   try{const config=await api('/api/config');for(const p of config.providers){const o=el('option',p.name+(p.ready?'':' · Schlüssel fehlt'));o.value=p.id;o.disabled=!p.ready;$('#provider').append(o);}
-    const local=await api('/api/models');$('#connection').textContent=local.connected?'● Ollama verbunden':'Ollama nicht erreichbar · unter ollama.com installieren und starten';
+    const local=await api('/api/models');$('#connection').textContent=local.connected?(runtime.mode==='central'?'● Team-Modellserver verbunden':'● Ollama verbunden'):(runtime.mode==='central'?'Team-Modellserver noch nicht bereit · Administrator kontaktieren':'Ollama nicht erreichbar · unter ollama.com installieren und starten');
     for(const model of local.models){const o=el('option');o.value=model;$('#models').append(o);}
     const provider=config.providers.find(p=>p.id===state.provider&&p.ready);$('#provider').value=provider?.id??'ollama';
     $('#model').value=state.model??(local.models.includes('qwen2.5:3b')?'qwen2.5:3b':local.models[0]??'qwen2.5:3b');

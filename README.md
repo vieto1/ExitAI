@@ -1,8 +1,14 @@
-# ExitAI 0.4.0 · Website und lokaler KI-Arbeitsbereich
+# ExitAI 0.5.0 · Website und lokaler KI-Arbeitsbereich
 
 **[Installationspaket herunterladen](https://github.com/vieto1/ExitAI/raw/refs/heads/main/downloads/ExitAI-Website-und-App.zip)** · [Downloadordner mit Prüfsumme](https://github.com/vieto1/ExitAI/tree/main/downloads)
 
 Eigenständige lokale Web-App mit Website, Chat, Modellwahl, Maskierungsvorschau, PDF-/DOCX-Kontext, Prompt-Bibliothek, Audit und lokaler Datenschutz-API. Entwickelt anhand öffentlich dokumentierter Nenna-Kernideen und mit REA untersuchter Produktseiten. Keine vollständige oder zertifizierte Nenna-Suite.
+
+## Zentraler Team-Server mit HTTPS
+
+Die Server-Konfiguration steht in [deploy/README.md](deploy/README.md). Sie bietet HTTPS mit Caddy, persönliche Anmeldungen, achtstündige widerrufbare Sitzungen, Administrator-/Teamrollen und nach Benutzername getrennte Browserdaten. Passwortänderungen widerrufen alte Sitzungen nach dem erneuten Erstellen des App-Containers. Der lokale Mac-Modus bleibt ohne Anmeldung nutzbar.
+
+**Noch nicht online:** Hosting-Konto, Server und Domain sind bisher nicht vorhanden. Der HTTPS-Integrationstest verwendet eine verifizierte lokale Test-CA und ersetzt keine öffentliche Domain-Abnahme.
 
 ## Auf dem Mac starten
 
@@ -62,12 +68,12 @@ Regelbasierte Erkennung von E-Mail, IBAN, Telefonnummern mit `+`, bestimmten Gel
 
 Verlauf, Schutzbegriffe, Originalantworten und Dokumente liegen unverschlüsselt im Browserprofil. Zuordnungen werden nur lokal verarbeitet und nicht zum Modell gesendet. `.local/audit.jsonl` enthält nur Zeitpunkt, Anbieter, Modell und Zähler; keine Prompts oder Zuordnungen, aber auch keine Manipulationssicherheit. „Lokale App-Daten löschen“ löscht Browserdaten, keine Exporte oder Auditdateien.
 
-Keine Compliance-Zertifizierung und keine Zusage zu DSGVO, BRAO oder §203 StGB. Kein Mehrbenutzerbetrieb, SSO, Rollenmanagement, Bildgenerator oder Code-ausführender Office-Agent. Die optionale Chromium-Erweiterung in `watch` ist ein explizit bedienter Composer, kein Schutz für 300 Webseiten. Ein realer Extension-Ablauf auf fremden Zielseiten konnte hier nicht verifiziert werden; Safari wird nicht unterstützt.
+Keine Compliance-Zertifizierung und keine Zusage zu DSGVO, BRAO oder §203 StGB. Kein Unternehmens-SSO, differenziertes Unternehmens-Rollenmanagement, Bildgenerator oder Code-ausführender Office-Agent. Der optionale Team-Modus besitzt persönliche Anmeldungen sowie Administrator-/Mitgliedsrollen. Die optionale Chromium-Erweiterung in `watch` ist ein explizit bedienter Composer, kein Schutz für 300 Webseiten. Ein realer Extension-Ablauf auf fremden Zielseiten konnte hier nicht verifiziert werden; Safari wird nicht unterstützt.
 
 ## Prüfungen
 
 ```bash
-npm test                         # 10 automatisierte Tests
+npm test                         # 13 automatisierte Tests
 npm run verify:browser           # laufende App und Chromium benötigt
 npm run verify:live              # laufende App und zwei Ollama-Modelle benötigt
 npm run build:watch

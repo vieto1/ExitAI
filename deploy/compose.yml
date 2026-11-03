@@ -1,0 +1,69 @@
+services:
+  app:
+    image: exitai-central:local
+    build:
+      context: ..
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    environment:
+      EXITAI_PUBLIC_ORIGIN: https://${EXITAI_DOMAIN:?Set EXITAI_DOMAIN}
+      EXITAI_USERS_FILE: /run/secrets/team_users
+      EXITAI_DATA_DIR: /data
+      EXITAI_OLLAMA_URL: http://ollama:11434
+      NO_PROXY: app,ollama,localhost,127.0.0.1
+    secrets:
+      - team_users
+    volumes:
+      - app_data:/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3210/api/health',{headers:{Host:new URL(process.env.EXITAI_PUBLIC_ORIGIN).host}}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+  caddy:
+    image: caddy:2.11.7-alpine
+    restart: unless-stopped
+    environment:
+      EXITAI_DOMAIN: ${EXITAI_DOMAIN:?Set EXITAI_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL}
+      NO_PROXY: app,ollama,localhost,127.0.0.1
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - backend
+    depends_on:
+      app:
+        condition: service_healthy
+  ollama:
+    image: ollama/ollama:0.40.14
+    restart: unless-stopped
+    environment:
+      OLLAMA_NO_CLOUD: "1"
+    volumes:
+      - model_data:/root/.ollama
+    networks:
+      - backend
+secrets:
+  team_users:
+    file: ../.central/users.json
+volumes:
+  app_data:
+  model_data:
+  caddy_data:
+  caddy_config:
+networks:
+  backend:

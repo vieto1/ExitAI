@@ -20,3 +20,7 @@ Stand: 3. November 2026. Ausgeführt auf Linux x86_64 mit Node.js 24.22.1 und Ch
 - Keine Zusage vollständiger Anonymisierung oder rechtlicher Konformität. KI-Ergebnisse bleiben prüfpflichtig.
 
 Die anfänglich geprüften winzigen Modelle hatten bei weiterführenden Dokumentfragen Qualitätsgrenzen. qwen3:4b war in dieser Laufzeit wegen ausgegebener Überlegungen statt kurzer Antworten ungeeignet. Die ausgelieferte Voreinstellung ist deshalb das im vollständigen Browserablauf geprüfte qwen2.5:3b.
+
+## Ergänzung: zentraler Betrieb 0.5.0
+
+13 Tests bestanden, einschließlich gesalzener Passworthashes, HTTPS-Origin-Konfiguration, Anmeldung, Session-Cookie-Flags, persistenter und widerrufbarer Sitzungen, Passwortänderung, Rollen, Herkunftsprüfung und Anmeldebegrenzung. Docker-App-Image gebaut. Caddy 2.11.7 mit verifizierter lokaler CA getestet: HTTPS, Reverse-Proxy, Anmeldung, Sitzung, Admin-Abgrenzung, Maskierung und Abmeldung funktionieren. App und Modell haben in Compose keine öffentlich freigegebenen Ports. Produktionsrollen und Zertifikatserneuerung sind konfiguriert; echte öffentliche Domain-Zertifikatsausstellung und Remote-Deployment bleiben ungetestet, da Hosting und Domain fehlen. Keine Benutzerdateien, Passwörter oder Sitzungsdaten werden in Git, ZIPs oder Docker-Images kopiert.

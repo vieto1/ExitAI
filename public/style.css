@@ -3,3 +3,7 @@
 #audit-entries{font-size:12px;margin:22px 0 35px;max-height:350px;overflow:auto}#audit-entries p{padding:12px;background:white;border:1px solid #e7ebf1;border-radius:8px}#audit-summary{margin-top:18px;color:#7466c4}
 
 #history .history-row{display:flex;align-items:center;gap:2px}#history .history-row>button:first-child{flex:1;min-width:0}#history .history-row>button:not(:first-child){width:28px;padding:7px 2px;flex-shrink:0;color:#8a82ac}.document-toggle{display:flex;flex-direction:row;align-items:center;gap:12px;min-width:0}.document-toggle span{overflow-wrap:anywhere}.backup-actions{display:flex;gap:8px;align-items:center}.backup-actions button,.restore-label{font-size:10px;padding:8px;border:1px solid #e4e8ef;border-radius:7px;background:white;cursor:pointer}.backup-actions label{display:block}.restore-label input{display:none}@media(max-width:850px){.backup-actions{display:none}}
+
+.account{display:flex;align-items:center;gap:9px}.account button{font-size:11px;padding:8px}.account small{font-size:10px}
+
+.account small{max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}@media(max-width:650px){.account small{display:none}}

@@ -1,0 +1,9 @@
+.git
+node_modules
+.local
+.runtime
+.central
+.release
+downloads
+**/.env
+**/*.log
