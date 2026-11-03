@@ -1,5 +1,7 @@
 # ExitAI 0.4.0 · Website und lokaler KI-Arbeitsbereich
 
+**[Installationspaket herunterladen](https://github.com/vieto1/ExitAI/raw/refs/heads/main/downloads/ExitAI-Website-und-App.zip)** · [Downloadordner mit Prüfsumme](https://github.com/vieto1/ExitAI/tree/main/downloads)
+
 Eigenständige lokale Web-App mit Website, Chat, Modellwahl, Maskierungsvorschau, PDF-/DOCX-Kontext, Prompt-Bibliothek, Audit und lokaler Datenschutz-API. Entwickelt anhand öffentlich dokumentierter Nenna-Kernideen und mit REA untersuchter Produktseiten. Keine vollständige oder zertifizierte Nenna-Suite.
 
 ## Auf dem Mac starten
