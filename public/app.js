@@ -1,6 +1,6 @@
+import {readApiResponse} from '/api-response.js';
 import {decodeState} from '/state.js';
 const $=s=>document.querySelector(s);
-async function readApiResponse(response){try{return await response.json();}catch{throw new Error('Sitzung oder Verbindung unterbrochen. Bitte die Seite bzw. den Freigabe-Link erneut öffnen.');}}
 const sessionResponse=await fetch('/api/session');
 if(sessionResponse.status===401){location.replace('/login');throw new Error('Anmeldung erforderlich.');}
 if(!sessionResponse.ok){$('#status').textContent='Verbindung zum Server fehlgeschlagen. Bitte die Seite neu laden.';$('#status').style.display='block';throw new Error('Sitzung konnte nicht geladen werden.');}

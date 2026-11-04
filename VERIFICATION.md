@@ -28,3 +28,7 @@ Die anfänglich geprüften winzigen Modelle hatten bei weiterführenden Dokument
 ## Ergänzung: kostenlose Mac-Freigabe 0.6.0
 
 17 automatisierte Tests bestehen. Neu geprüft: genaue E-Mail-Liste ohne Wildcards, installierte lokale Modelle, HTTPS-Tunnel-Origin, URL plus registrierte Verbindung als Voraussetzung, Abbruch ohne anonymen Fallback, Audit-/Cloud-Anbieter-Sperre, Modell-Zulassung und Widerruf. Cloudflared 2026.10.7 wurde gegen den offiziellen SHA-256-Digest geprüft; die echte Linux-Laufzeit akzeptiert sämtliche verwendeten Flags einschließlich --allowed-mail. Das offizielle macOS-ARM64-Archiv wurde heruntergeladen und auf Prüfsumme und Struktur kontrolliert. Kein echter öffentlicher Tunnel, keine PIN-Zustellung und keine macOS-Ausführung in dieser Cloud verifiziert. Ein lokaler HTTP-Freigabetest ersetzt keinen erfolgreichen externen Cloudflare-Test.
+
+## 0.6.1: Freigabefehler genauer anzeigen
+
+18 automatisierte Tests bestanden. Nicht lesbare Gateway-Antworten werden nach HTTP-Status und Anmeldeumleitung unterschieden; eine HTML-/Textantwort wird nicht mehr pauschal als Sitzungsunterbrechung bezeichnet. Der Abruf des vom Nutzer gezeigten öffentlichen Links lieferte aus der Prüfumgebung HTTP 403 mit „Your request was blocked.“. Dieser Abruf hatte keine Besuchersitzung und belegt nicht die konkrete Ursache im Safari-Browser des Nutzers. Eine Wiederherstellung des öffentlichen Zugangs ist damit nicht nachgewiesen.

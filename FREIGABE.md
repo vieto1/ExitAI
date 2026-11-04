@@ -32,7 +32,10 @@ Die lokale App bleibt an die Loopback-Adresse gebunden. Die Freigabe nutzt einen
 - **Tunnel wird nicht bereit:** Manche Firmen-/Hotelnetze blockieren die benötigten Tunnelverbindungen. Es wird dann keine ungeschützte Alternative gestartet. Mit einer normalen eigenen Internetverbindung erneut testen.
 - **PIN kommt nicht an:** Die beim Start eingegebene Adresse und den Spamordner prüfen. Änderungen der erlaubten Liste erfordern einen Neustart und erzeugen einen neuen Link.
 - **Link geht später nicht mehr:** Freigabe beendet, Mac eingeschlafen oder Verbindung unterbrochen. Erneut starten und den neuen Link teilen.
-- **Seite meldet eine unterbrochene Sitzung:** Den Freigabe-Link erneut öffnen und gegebenenfalls die E-Mail erneut bestätigen.
+- **Anmeldeseite / HTTP 401:** Den Freigabe-Link in einem neuen Tab öffnen und gegebenenfalls die E-Mail erneut bestätigen.
+- **HTTP 403 / Anfrage blockiert:** Die Anfrage wird am Zugang abgewiesen. Das belegt keine abgelaufene Sitzung. Die genaue Fehlermeldung für die Fehlersuche festhalten.
+- **HTTP 502, 503, 504 oder 530:** Freigabe.command, Internetverbindung und Wachzustand des Mac prüfen.
+- **Nur auf dem eigenen Mac arbeiten:** Start.command öffnen und die angezeigte lokale Adresse verwenden. Dafür wird kein Cloudflare-Zugang benötigt.
 
 ## Grenzen und Prüfnachweis
 
