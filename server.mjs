@@ -4,6 +4,7 @@ import {pathToFileURL} from 'node:url';
 import {maskTexts,restore} from './privacy.mjs';
 import {extractDocument} from './documents.mjs';
 import {centralSettings,createAuth} from './auth.mjs';
+import {ShareAccess} from './share-access.mjs';
 import {resolve,sep} from 'node:path';
 const staticFiles={'/':'home.html','/login':'login.html','/login.js':'login.js','/app':'index.html','/app/':'index.html','/installation':'installation.html','/datenschutz':'privacy.html','/state.js':'state.js','/site.js':'site.js','/site.css':'site.css','/app.js':'app.js','/style.css':'style.css'};
 const types={html:'text/html',js:'text/javascript',css:'text/css'};
@@ -32,8 +33,10 @@ async function jsonFetch(url,options){
   if(!res.ok)throw Object.assign(new Error(`Modellanbieter: HTTP ${res.status}. Modellname, Zugang und Kontingent prüfen.`),{status:502});
   return res.json();
 }
-export function makeServer({env=process.env,auditDir}={}){
-  const central=centralSettings(env),auth=central?createAuth(central):null;
+export function makeServer({env=process.env,auditDir,shareAccess}={}){
+  const central=centralSettings(env);
+  if(shareAccess&&(!(shareAccess instanceof ShareAccess)||central))throw new Error('Freigabe und zentraler Betrieb dürfen nicht kombiniert werden.');
+  const auth=central?createAuth(central):null;
   auditDir??=central?pathToFileURL(resolve(central.dataDir)+sep):new URL('./.local/',import.meta.url);
   const ollamaUrl=new URL(env.EXITAI_OLLAMA_URL??'http://127.0.0.1:11434');
   if(!['http:','https:'].includes(ollamaUrl.protocol)||ollamaUrl.username||ollamaUrl.password||ollamaUrl.search||ollamaUrl.hash||ollamaUrl.pathname!=='/')throw new Error('Ungültige EXITAI_OLLAMA_URL.');
@@ -42,8 +45,10 @@ export function makeServer({env=process.env,auditDir}={}){
     res.setHeader('X-Content-Type-Options','nosniff');
     res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'");
     const host=req.headers.host;
-    if(!host||(central?host!==central.host:!/^(?:127\.0\.0\.1|localhost):\d+$/.test(host)))return json(res,403,{error:'Ungültiger Host.'});
-    if(req.headers.origin&&req.headers.origin!==(central?.origin??`http://${host}`))return json(res,403,{error:'Fremde Herkunft nicht erlaubt.'});
+    const shared=Boolean(shareAccess&&host===shareAccess.host);
+    if(shared&&!shareAccess.origin)return json(res,503,{error:'Freigabe ist noch nicht bereit oder wurde beendet.'});
+    if(!host||(!shared&&(central?host!==central.host:!/^(?:127\.0\.0\.1|localhost):\d+$/.test(host))))return json(res,403,{error:'Ungültiger Host.'});
+    if(req.headers.origin&&req.headers.origin!==(shared?shareAccess.origin:central?.origin??`http://${host}`))return json(res,403,{error:'Fremde Herkunft nicht erlaubt.'});
     try{
       const path=new URL(req.url,`http://${host}`).pathname;
       const user=auth?.user(req)??null;
@@ -56,7 +61,7 @@ export function makeServer({env=process.env,auditDir}={}){
         if(path==='/app'||path==='/app/'){res.writeHead(302,{'Location':'/login','Cache-Control':'no-store'});return res.end();}
         if(path.startsWith('/api/')||path.startsWith('/v1/'))return json(res,401,{error:'Bitte anmelden.'});
       }
-      if(req.method==='GET'&&path==='/api/session')return json(res,200,{mode:central?'central':'local',user,role:user?.role??'admin'});
+      if(req.method==='GET'&&path==='/api/session')return json(res,200,{mode:shared?'share':central?'central':'local',user,role:shared?'member':user?.role??'admin'});
       if(req.method==='GET'&&path==='/download'){
         try{const file=await readFile(new URL('./.release/ExitAI.zip',import.meta.url));res.writeHead(200,{'Content-Type':'application/zip','Content-Disposition':'attachment; filename="ExitAI.zip"','Cache-Control':'no-store'});return res.end(file);}
         catch(e){if(e.code==='ENOENT')return json(res,503,{error:'Downloadpaket noch nicht gebaut. Im Projektordner npm run package ausführen.'});throw e;}
@@ -70,7 +75,7 @@ export function makeServer({env=process.env,auditDir}={}){
         catch(e){return json(res,400,{error:e.message==='Kein Text gefunden. Gescannte PDFs benötigen vorher eine OCR-Verarbeitung.'?e.message:`Datei konnte nicht eingelesen werden: ${e.message}`});}
       }
       if(req.method==='GET'&&path==='/api/audit'){
-        if(central&&user.role!=='admin')return json(res,403,{error:'Nur Administratoren dürfen das Team-Audit einsehen.'});
+        if(shared||(central&&user.role!=='admin'))return json(res,403,{error:'Nur Administratoren dürfen das Team-Audit einsehen.'});
         let entries=[];
         try{entries=(await readFile(new URL('audit.jsonl',auditDir),'utf8')).trim().split('\n').filter(Boolean).slice(-500).map(line=>JSON.parse(line));}catch(e){if(e.code!=='ENOENT')throw e;}
         return json(res,200,{entries,limit:500});
@@ -86,10 +91,10 @@ export function makeServer({env=process.env,auditDir}={}){
         const input=await body(req);check(input&&typeof input.text==='string'&&input.text.length<=100000&&Array.isArray(input.mappings)&&input.mappings.length<=10000&&input.mappings.every(m=>m&&typeof m.marker==='string'&&/^\[EXITAI_\d+\]$/u.test(m.marker)&&typeof m.value==='string'&&m.value.length<=100000),'Ungültiger Text oder ungültige Zuordnung.');
         return json(res,200,{text:restore(input.text,input.mappings)});
       }
-      if(req.method==='GET'&&path==='/api/health')return json(res,200,{status:'ok',app:'ExitAI',version:'0.5.0'});
-      if(req.method==='GET'&&path==='/api/config')return json(res,200,{providers:[{id:'ollama',name:central?'Ollama · Team-Server':'Ollama · lokal',ready:true},{id:'openai',name:'OpenAI · Cloud',ready:Boolean(env.EXITAI_OPENAI_KEY)},{id:'anthropic',name:'Anthropic · Cloud',ready:Boolean(env.EXITAI_ANTHROPIC_KEY)}]});
+      if(req.method==='GET'&&path==='/api/health')return json(res,200,{status:'ok',app:'ExitAI',version:'0.6.0'});
+      if(req.method==='GET'&&path==='/api/config')return json(res,200,{providers:[{id:'ollama',name:shared?'Ollama · Freigabe-Mac':central?'Ollama · Team-Server':'Ollama · lokal',ready:true},{id:'openai',name:'OpenAI · Cloud',ready:!shared&&Boolean(env.EXITAI_OPENAI_KEY)},{id:'anthropic',name:'Anthropic · Cloud',ready:!shared&&Boolean(env.EXITAI_ANTHROPIC_KEY)}]});
       if(req.method==='GET'&&path==='/api/models'){
-        try{const data=await jsonFetch(new URL('/api/tags',ollamaUrl));return json(res,200,{models:(data.models??[]).map(m=>m.name),connected:true});}
+        try{const data=await jsonFetch(new URL('/api/tags',ollamaUrl));return json(res,200,{models:(data.models??[]).map(m=>m.name).filter(name=>!shared||shareAccess.permitsModel(name)),connected:true});}
         catch{return json(res,200,{models:[],connected:false});}
       }
       if(req.method==='POST'&&['/api/preview','/api/chat'].includes(path)){
@@ -97,7 +102,9 @@ export function makeServer({env=process.env,auditDir}={}){
         const input=await body(req),p=prepare(input);
         if(path==='/api/preview')return json(res,200,{messages:p.messages,system:p.system,mappings:p.mappings});
         check(['ollama','openai','anthropic'].includes(input.provider),'Unbekannter Anbieter.');
+        check(!shared||input.provider==='ollama','In der kostenlosen Freigabe sind Cloud-Anbieter deaktiviert.');
         check(typeof input.model==='string'&&/^[A-Za-z0-9][A-Za-z0-9:._/-]{0,99}$/.test(input.model),'Gültigen Modellnamen angeben.');
+        check(!shared||shareAccess.permitsModel(input.model),'Dieses Modell ist für die Freigabe nicht zugelassen.');
         check(input.confirmed===true,'Maskierte Anfrage vor dem Versand bestätigen.');
         let answer;const messages=[{role:'system',content:p.system},...p.messages];
         if(input.provider==='ollama'){

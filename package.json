@@ -1,6 +1,6 @@
 {
   "name": "exitai-local",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -13,7 +13,8 @@
     "package": "npm run build:watch && node scripts/package.mjs",
     "verify:browser": "node scripts/verify-browser.mjs",
     "verify:live": "node scripts/verify-live.mjs",
-    "verify:https": "node scripts/verify-https.mjs"
+    "verify:https": "node scripts/verify-https.mjs",
+    "share": "node --env-file-if-exists=.env scripts/share.mjs"
   },
   "dependencies": {
     "mammoth": "1.13.0",

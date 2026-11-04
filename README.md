@@ -1,8 +1,14 @@
-# ExitAI 0.5.0 · Website und lokaler KI-Arbeitsbereich
+# ExitAI 0.6.0 · Website und lokaler KI-Arbeitsbereich
 
 **[Installationspaket herunterladen](https://github.com/vieto1/ExitAI/raw/refs/heads/main/downloads/ExitAI-Website-und-App.zip)** · [Downloadordner mit Prüfsumme](https://github.com/vieto1/ExitAI/tree/main/downloads)
 
 Eigenständige lokale Web-App mit Website, Chat, Modellwahl, Maskierungsvorschau, PDF-/DOCX-Kontext, Prompt-Bibliothek, Audit und lokaler Datenschutz-API. Entwickelt anhand öffentlich dokumentierter Nenna-Kernideen und mit REA untersuchter Produktseiten. Keine vollständige oder zertifizierte Nenna-Suite.
+
+## Ohne Bankdaten für Kollegen freigeben
+
+Die neue **Freigabe.command** baut auf dem eigenen Mac einen kostenlosen HTTPS-Quick-Tunnel auf. Zugriff nur für die eingetragenen E-Mail-Adressen per Cloudflare-PIN. Besucher haben keinen Zugriff auf Audit oder kostenpflichtige Cloud-Anbieter. Kein Hosting-Konto und keine Domain nötig. Der Mac muss eingeschaltet, aufgeklappt und online bleiben; der Link ist temporär. Für den Test nur Beispieldaten verwenden.
+
+Anleitung und ehrlicher Teststand: **[FREIGABE.md](FREIGABE.md)**. Den öffentlichen Tunnel und die tatsächliche PIN-Zustellung muss der Mac-Besitzer praktisch prüfen.
 
 ## Zentraler Team-Server mit HTTPS
 
@@ -73,7 +79,7 @@ Keine Compliance-Zertifizierung und keine Zusage zu DSGVO, BRAO oder §203 StGB.
 ## Prüfungen
 
 ```bash
-npm test                         # 13 automatisierte Tests
+npm test                         # 17 automatisierte Tests
 npm run verify:browser           # laufende App und Chromium benötigt
 npm run verify:live              # laufende App und zwei Ollama-Modelle benötigt
 npm run build:watch

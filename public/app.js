@@ -1,9 +1,11 @@
 import {decodeState} from '/state.js';
 const $=s=>document.querySelector(s);
+async function readApiResponse(response){try{return await response.json();}catch{throw new Error('Sitzung oder Verbindung unterbrochen. Bitte die Seite bzw. den Freigabe-Link erneut öffnen.');}}
 const sessionResponse=await fetch('/api/session');
 if(sessionResponse.status===401){location.replace('/login');throw new Error('Anmeldung erforderlich.');}
 if(!sessionResponse.ok){$('#status').textContent='Verbindung zum Server fehlgeschlagen. Bitte die Seite neu laden.';$('#status').style.display='block';throw new Error('Sitzung konnte nicht geladen werden.');}
-const runtime=await sessionResponse.json(),storageKey=runtime.mode==='central'?`exitai-v1:${runtime.user.username}`:'exitai-v1';
+let runtime;try{runtime=await readApiResponse(sessionResponse);}catch(error){$('#status').textContent=error.message;$('#status').style.display='block';throw error;}
+const storageKey=runtime.mode==='central'?`exitai-v1:${runtime.user.username}`:runtime.mode==='share'?'exitai-v1:share':'exitai-v1';
 const templates={summary:{title:'Dokument zusammenfassen',text:'Fasse die angehängten Dokumente zusammen. Nenne die wichtigsten Aussagen, offene Fragen und Quellen.'},email:{title:'E-Mail formulieren',text:'Formuliere eine freundliche, professionelle E-Mail anhand folgender Stichpunkte:\n\n'},ideas:{title:'Ideen entwickeln',text:'Entwickle fünf konkrete Ideen zu folgendem Thema. Nenne jeweils Nutzen, Aufwand und einen ersten Schritt:\n\n'}};
 let state={chats:[],documents:[],terms:'',prompts:[]},activeId=null,pending=null,busy=false;
 try{const saved=JSON.parse(localStorage.getItem(storageKey)??'null');if(saved){state=decodeState(saved);activeId=state.currentId;}}catch{}
@@ -32,7 +34,7 @@ function render(){
   state.prompts.forEach((p,i)=>{const row=el('div');const b=el('button',p.title);b.onclick=()=>usePrompt(p.text);const del=el('button','Löschen');del.onclick=()=>{state.prompts.splice(i,1);save();render();};row.append(b,del);$('#custom-prompts').append(row);});
 }
 function usePrompt(text){if(busy)return;view('chat');$('#message').value=text;$('#message').focus();}
-async function api(path,data){const r=await fetch(path,{method:data?'POST':'GET',headers:data?{'Content-Type':'application/json'}:{},body:data?JSON.stringify(data):undefined});const result=await r.json();if(r.status===401&&runtime.mode==='central')location.assign('/login');if(!r.ok)throw new Error(result.error??'Anfrage fehlgeschlagen.');return result;}
+async function api(path,data){const r=await fetch(path,{method:data?'POST':'GET',headers:data?{'Content-Type':'application/json'}:{},body:data?JSON.stringify(data):undefined});const result=await readApiResponse(r);if(r.status===401&&runtime.mode==='central')location.assign('/login');if(!r.ok)throw new Error(result.error??'Anfrage fehlgeschlagen.');return result;}
 function setBusy(value){busy=value;$('#preview-button').disabled=value;$('#new-chat').disabled=value;$('#send').disabled=value;render();}
 document.querySelectorAll('.nav').forEach(n=>n.onclick=()=>view(n.dataset.view));
 $('#new-chat').onclick=()=>{if(busy)return;activeId=null;save();$('#message').value='';render();view('chat');};
@@ -45,7 +47,7 @@ $('#files').onchange=async e=>{
   for(const f of e.target.files){
     if(state.documents.length>=5){toast('Maximal fünf Dokumente.');break;}
     if(!/\.(pdf|docx|txt|md|csv)$/i.test(f.name)||f.size>10000000){toast(`${f.name}: PDF, DOCX, TXT, MD oder CSV, maximal 10 MB.`);continue;}
-    try{const response=await fetch('/api/documents/import?name='+encodeURIComponent(f.name),{method:'POST',headers:{'Content-Type':'application/octet-stream'},body:f});const doc=await response.json();if(!response.ok)throw new Error(doc.error);state.documents.push(doc);}catch(error){toast(error.message);}
+    try{const response=await fetch('/api/documents/import?name='+encodeURIComponent(f.name),{method:'POST',headers:{'Content-Type':'application/octet-stream'},body:f});const doc=await readApiResponse(response);if(!response.ok)throw new Error(doc.error);state.documents.push(doc);}catch(error){toast(error.message);}
   }
   e.target.value='';save();render();
 };
@@ -91,12 +93,18 @@ async function init(){
     if(runtime.role!=='admin')$('[data-view="audit"]').classList.add('hidden');
     $('#logout').onclick=async()=>{try{await api('/api/auth/logout',{});location.assign('/login');}catch(error){toast(error.message);}};
   }
+  if(runtime.mode==='share'){
+    $('#account-user').textContent='E-Mail-Freigabe';$('[data-view="audit"]').classList.add('hidden');
+    $('.local-note').textContent='Freigabe-Mac · Zugang über Cloudflare';
+    $('#storage-notice').textContent='Diese zeitweilige Freigabe nutzt E-Mail-PINs von Cloudflare. Nachrichten und Originaldokumente laufen über Cloudflare zu dem freigebenden Mac und werden dort maskiert. Nur Beispieldaten verwenden. Cloud-Anbieter und das Audit sind für Besucher gesperrt. Browserdaten werden nur in deinem eigenen Browserprofil gespeichert.';
+  }
   render();
   try{const config=await api('/api/config');for(const p of config.providers){const o=el('option',p.name+(p.ready?'':' · Schlüssel fehlt'));o.value=p.id;o.disabled=!p.ready;$('#provider').append(o);}
-    const local=await api('/api/models');$('#connection').textContent=local.connected?(runtime.mode==='central'?'● Team-Modellserver verbunden':'● Ollama verbunden'):(runtime.mode==='central'?'Team-Modellserver noch nicht bereit · Administrator kontaktieren':'Ollama nicht erreichbar · unter ollama.com installieren und starten');
+    const local=await api('/api/models');$('#connection').textContent=local.connected?(runtime.mode==='share'?'● Modell auf dem Freigabe-Mac':runtime.mode==='central'?'● Team-Modellserver verbunden':'● Ollama verbunden'):(runtime.mode!=='local'?'Modellserver noch nicht bereit · Betreiber kontaktieren':'Ollama nicht erreichbar · unter ollama.com installieren und starten');
     for(const model of local.models){const o=el('option');o.value=model;$('#models').append(o);}
     const provider=config.providers.find(p=>p.id===state.provider&&p.ready);$('#provider').value=provider?.id??'ollama';
     $('#model').value=state.model??(local.models.includes('qwen2.5:3b')?'qwen2.5:3b':local.models[0]??'qwen2.5:3b');
+    if(runtime.mode==='share'&&!local.models.includes($('#model').value)&&local.models.length)$('#model').value=local.models[0];
   }catch(err){toast(err.message);}
 }
 init();
