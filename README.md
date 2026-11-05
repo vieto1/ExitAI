@@ -1,3 +1,11 @@
+# Browser-Pilot auf GitHub Pages
+
+Die statische Online-Ausgabe liegt fertig gebaut in `docs/`. Sie enthält echte Browser-KI (WebLLM, Qwen2.5 1.5B), PDF-/DOCX-/Textimport, dieselbe Maskierung wie der lokale Server, Vorschau, Verlauf, Vorlagen und Sicherungen. Kein laufender Freigabe-Mac, Tunnel, API-Schlüssel oder Bankkonto nötig. Empfohlen: aktuelles Chrome/Edge mit WebGPU. Modell-Erstdownload rund 0,85 GB plus Laufzeit; freier Grafik-/Arbeitsspeicher nötig. Nur Beispieldaten, maximal 6.000 Zeichen Kontext, keine gemeinsame Benutzerverwaltung oder zentrale KI.
+
+**Einmalige Freischaltung durch den Repository-Administrator:** [Settings → Pages](https://github.com/vieto1/ExitAI/settings/pages), Source **Deploy from a branch**, Branch **main**, Ordner **/docs**, Save. Nach erfolgreichem GitHub-Build ist die Zieladresse https://vieto1.github.io/ExitAI/ . Solange Pages nicht aktiviert und der Build nicht erfolgreich ist, ist diese Adresse noch keine verfügbare Website. Der aktuelle Integrationszugriff kann Pages nicht aktivieren (GitHub HTTP 403).
+
+Neu bauen: `npm ci`, dann `npm run build:pages`. Browserprüfung: `node scripts/verify-pages.mjs` gegen `EXITAI_PAGES_TEST_URL`; `EXITAI_BROWSER_MODEL_LIVE=1` lädt und testet das echte Modell. Das Modell kommt von Hugging Face; die WebLLM-Laufzeit von den MLC-Projektservern. Chats und Dokumenttexte werden von dieser Ausgabe nicht an einen KI-Dienst gesendet. Modellcache bleibt separat im Browser; Website-Daten löschen entfernt ihn.
+
 # ExitAI 0.6.0 · Website und lokaler KI-Arbeitsbereich
 
 **[Installationspaket herunterladen](https://github.com/vieto1/ExitAI/raw/refs/heads/main/downloads/ExitAI-Website-und-App.zip)** · [Downloadordner mit Prüfsumme](https://github.com/vieto1/ExitAI/tree/main/downloads)

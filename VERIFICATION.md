@@ -32,3 +32,10 @@ Die anfänglich geprüften winzigen Modelle hatten bei weiterführenden Dokument
 ## 0.6.1: Freigabefehler genauer anzeigen
 
 18 automatisierte Tests bestanden. Nicht lesbare Gateway-Antworten werden nach HTTP-Status und Anmeldeumleitung unterschieden; eine HTML-/Textantwort wird nicht mehr pauschal als Sitzungsunterbrechung bezeichnet. Der Abruf des vom Nutzer gezeigten öffentlichen Links lieferte aus der Prüfumgebung HTTP 403 mit „Your request was blocked.“. Dieser Abruf hatte keine Besuchersitzung und belegt nicht die konkrete Ursache im Safari-Browser des Nutzers. Eine Wiederherstellung des öffentlichen Zugangs ist damit nicht nachgewiesen.
+
+## 0.7.0: Statischer Browser-Pilot für GitHub Pages
+
+- 18 automatisierte Tests bestanden; lokale Website/App-Browserprüfung weiterhin bestanden.
+- Eigene Pages-Browserprüfung bestanden: Navigation unter /ExitAI/, PDF- und DOCX-Import, identische Maskierung aus gemeinsamem request.mjs/privacy.mjs, Versandvorschau, mobile Darstellung, keine Server-API-Aufrufe und verständlicher Fehler bei fehlendem WebGPU.
+- Echte WebLLM-Modellgewichte für Qwen2.5 1.5B wurden heruntergeladen (rund 835 MB) und erfolgreich in WebGPU geladen. Die softwarebasierte Testgrafik lieferte innerhalb von fünf Minuten keine vollständige Antwort. Das ist kein erfolgreicher Ende-zu-Ende-Nachweis einer Antwort. Ein kleineres 0.5B-Modell ist als Option vorhanden. Produktion bricht Modellstart nach zehn Minuten und Antwortgenerierung nach drei Minuten mit einer erklärenden Meldung ab; beendete Worker werden verworfen und können neu gestartet werden.
+- GitHub-Pages-Aktivierung per API wurde versucht, von GitHub jedoch mit HTTP 403 „Resource not accessible by integration“ abgelehnt. Die fertigen statischen Dateien liegen in docs/. Die Pages-Website ist bis zur Aktivierung in Settings → Pages und erfolgreichem GitHub-Build nicht online. Kein zentraler KI-Server und keine GitHub-Actions-Dauerlauf-Hostinglösung.

@@ -1,0 +1,14 @@
+import {build} from 'esbuild';
+import {mkdir,readFile,writeFile,copyFile,rm} from 'node:fs/promises';
+const root=new URL('../',import.meta.url),out=new URL('../docs/',import.meta.url);
+await rm(out,{recursive:true,force:true});await mkdir(new URL('app/',out),{recursive:true});await mkdir(new URL('browser/',out),{recursive:true});
+for(const file of ['style.css','site.css','state.js','api-response.js','app.js'])await copyFile(new URL('public/'+file,root),new URL(file,out));
+const html=(await readFile(new URL('public/index.html',root),'utf8')).replace(/href="\/([^"]*)"/g,(_,path)=>`href="/ExitAI/${path}"`).replace('src="/app.js"','src="/ExitAI/browser/bootstrap.js"');
+await writeFile(new URL('app/index.html',out),html.replace(/<input[^>]*id="model"[^>]*>/,'<select id="model" aria-label="Browser-Modell"></select>'));
+await writeFile(new URL('style.css',out),(await readFile(new URL('style.css',out),'utf8'))+'\n.toolbar select{max-width:100%;width:240px}.toolbar label{min-width:0;max-width:100%}.pilot-panel{padding:18px;margin:0 0 22px;border:1px solid #c8bfff;border-radius:16px;background:#f0edff;line-height:1.5}.pilot-panel p{font-size:14px;margin:8px 0}.pilot-panel button{padding:10px 16px}.pilot-panel [role=status]{overflow-wrap:anywhere}\n');
+await build({entryPoints:[new URL('browser/bootstrap.js',root).pathname,new URL('browser/model-worker.js',root).pathname],outdir:new URL('browser/',out).pathname,bundle:true,format:'esm',platform:'browser',target:'es2022',external:['../app.js'],minify:true,legalComments:'linked'});
+await copyFile(new URL('node_modules/pdfjs-dist/build/pdf.worker.mjs',root),new URL('browser/pdf.worker.mjs',out));
+await writeFile(new URL('.nojekyll',out),'');
+await copyFile(new URL('browser/home.html',root),new URL('index.html',out));
+await copyFile(new URL('browser/privacy.html',root),new URL('datenschutz.html',out));
+console.log('GitHub-Pages-Pilot gebaut: docs/ mit Browser-KI, PDF-/DOCX-Import und lokalem Verlauf.');

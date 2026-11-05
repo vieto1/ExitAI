@@ -1,11 +1,12 @@
-import {readApiResponse} from '/api-response.js';
-import {decodeState} from '/state.js';
+import {readApiResponse} from './api-response.js';
+import {decodeState} from './state.js';
+const appFetch=globalThis.exitaiFetch??globalThis.fetch.bind(globalThis);
 const $=s=>document.querySelector(s);
-const sessionResponse=await fetch('/api/session');
+const sessionResponse=await appFetch('/api/session');
 if(sessionResponse.status===401){location.replace('/login');throw new Error('Anmeldung erforderlich.');}
 if(!sessionResponse.ok){$('#status').textContent='Verbindung zum Server fehlgeschlagen. Bitte die Seite neu laden.';$('#status').style.display='block';throw new Error('Sitzung konnte nicht geladen werden.');}
 let runtime;try{runtime=await readApiResponse(sessionResponse);}catch(error){$('#status').textContent=error.message;$('#status').style.display='block';throw error;}
-const storageKey=runtime.mode==='central'?`exitai-v1:${runtime.user.username}`:runtime.mode==='share'?'exitai-v1:share':'exitai-v1';
+const storageKey=runtime.mode==='central'?`exitai-v1:${runtime.user.username}`:runtime.mode==='share'?'exitai-v1:share':runtime.mode==='browser'?'exitai-v1:browser':'exitai-v1';
 const templates={summary:{title:'Dokument zusammenfassen',text:'Fasse die angehängten Dokumente zusammen. Nenne die wichtigsten Aussagen, offene Fragen und Quellen.'},email:{title:'E-Mail formulieren',text:'Formuliere eine freundliche, professionelle E-Mail anhand folgender Stichpunkte:\n\n'},ideas:{title:'Ideen entwickeln',text:'Entwickle fünf konkrete Ideen zu folgendem Thema. Nenne jeweils Nutzen, Aufwand und einen ersten Schritt:\n\n'}};
 let state={chats:[],documents:[],terms:'',prompts:[]},activeId=null,pending=null,busy=false;
 try{const saved=JSON.parse(localStorage.getItem(storageKey)??'null');if(saved){state=decodeState(saved);activeId=state.currentId;}}catch{}
@@ -34,8 +35,8 @@ function render(){
   state.prompts.forEach((p,i)=>{const row=el('div');const b=el('button',p.title);b.onclick=()=>usePrompt(p.text);const del=el('button','Löschen');del.onclick=()=>{state.prompts.splice(i,1);save();render();};row.append(b,del);$('#custom-prompts').append(row);});
 }
 function usePrompt(text){if(busy)return;view('chat');$('#message').value=text;$('#message').focus();}
-async function api(path,data){const r=await fetch(path,{method:data?'POST':'GET',headers:data?{'Content-Type':'application/json'}:{},body:data?JSON.stringify(data):undefined});const result=await readApiResponse(r);if(r.status===401&&runtime.mode==='central')location.assign('/login');if(!r.ok)throw new Error(result.error??'Anfrage fehlgeschlagen.');return result;}
-function setBusy(value){busy=value;$('#preview-button').disabled=value;$('#new-chat').disabled=value;$('#send').disabled=value;render();}
+async function api(path,data){const r=await appFetch(path,{method:data?'POST':'GET',headers:data?{'Content-Type':'application/json'}:{},body:data?JSON.stringify(data):undefined});const result=await readApiResponse(r);if(r.status===401&&runtime.mode==='central')location.assign('/login');if(!r.ok)throw new Error(result.error??'Anfrage fehlgeschlagen.');return result;}
+function setBusy(value){busy=value;$('#preview-button').disabled=value;$('#new-chat').disabled=value;$('#send').disabled=value;if(runtime.mode==='browser')$('#model').disabled=value;render();}
 document.querySelectorAll('.nav').forEach(n=>n.onclick=()=>view(n.dataset.view));
 $('#new-chat').onclick=()=>{if(busy)return;activeId=null;save();$('#message').value='';render();view('chat');};
 document.querySelectorAll('[data-template]').forEach(b=>b.onclick=()=>usePrompt(templates[b.dataset.template].text));
@@ -47,11 +48,11 @@ $('#files').onchange=async e=>{
   for(const f of e.target.files){
     if(state.documents.length>=5){toast('Maximal fünf Dokumente.');break;}
     if(!/\.(pdf|docx|txt|md|csv)$/i.test(f.name)||f.size>10000000){toast(`${f.name}: PDF, DOCX, TXT, MD oder CSV, maximal 10 MB.`);continue;}
-    try{const response=await fetch('/api/documents/import?name='+encodeURIComponent(f.name),{method:'POST',headers:{'Content-Type':'application/octet-stream'},body:f});const doc=await readApiResponse(response);if(!response.ok)throw new Error(doc.error);state.documents.push(doc);}catch(error){toast(error.message);}
+    try{const response=await appFetch('/api/documents/import?name='+encodeURIComponent(f.name),{method:'POST',headers:{'Content-Type':'application/octet-stream'},body:f});const doc=await readApiResponse(response);if(!response.ok)throw new Error(doc.error);state.documents.push(doc);}catch(error){toast(error.message);}
   }
   e.target.value='';save();render();
 };
-$('#erase').onclick=()=>{if(busy)return toast('Bitte das Ende der laufenden Anfrage abwarten.');if(!confirm('Alle Chats, Dokumente, Vorlagen und Schutzbegriffe aus diesem Browser löschen? Das serverseitige Audit bleibt erhalten.'))return;state={chats:[],documents:[],terms:'',prompts:[]};activeId=null;save();$('#terms').value='';$('#message').value='';render();toast('Lokale App-Daten gelöscht.');};
+$('#erase').onclick=()=>{if(busy)return toast('Bitte das Ende der laufenden Anfrage abwarten.');if(!confirm(runtime.mode==='browser'?'Alle Chats, Dokumente, Vorlagen und Schutzbegriffe aus diesem Browser löschen? Der Modellcache bleibt separat erhalten.':'Alle Chats, Dokumente, Vorlagen und Schutzbegriffe aus diesem Browser löschen? Das serverseitige Audit bleibt erhalten.'))return;state={chats:[],documents:[],terms:'',prompts:[]};activeId=null;save();$('#terms').value='';$('#message').value='';render();toast('Lokale App-Daten gelöscht.');};
 $('#export-chat').onclick=()=>{const c=current();if(!c)return toast('Noch kein Chat zum Exportieren.');const text=c.messages.map(m=>`## ${m.role==='user'?'Du':'ExitAI'}\n\n${m.content}`).join('\n\n');const url=URL.createObjectURL(new Blob([text],{type:'text/markdown'}));const a=el('a');a.href=url;a.download='ExitAI-Chat.md';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
 $('#composer').onsubmit=async e=>{
   e.preventDefault();if(busy)return;
@@ -80,7 +81,7 @@ $('#send').onclick=async()=>{
     if(!chat){chat={id:crypto.randomUUID(),title:job.content.slice(0,48),messages:[]};state.chats.push(chat);}
     chat.messages.push({role:'user',content:job.content},{role:'assistant',content:result.answer});activeId=chat.id;
     save();$('#message').value='';$('#preview').close();pending=null;
-    toast(result.auditSaved?`Antwort erhalten · ${result.protectedFields} Angaben maskiert.`:'Antwort erhalten. Audit konnte nicht gespeichert werden.');
+    toast(runtime.mode==='browser'?`Antwort erhalten · ${result.protectedFields} Angaben maskiert · Browser-KI.`:result.auditSaved?`Antwort erhalten · ${result.protectedFields} Angaben maskiert.`:'Antwort erhalten. Audit konnte nicht gespeichert werden.');
   }catch(err){toast(err.message);}finally{setBusy(false);}
 };
 $('#provider').onchange=()=>{$('#model').value=({ollama:'qwen2.5:3b',openai:'gpt-4.1-mini',anthropic:'claude-sonnet-4-5'})[$('#provider').value];state.provider=$('#provider').value;state.model=$('#model').value;save();$('#connection').textContent=$('#provider').value==='ollama'?(runtime.mode==='central'?'Modell auf dem Team-Server':'Lokaler Modellserver'):'Maskierte Inhalte werden an den Cloud-Anbieter gesendet';};
@@ -93,6 +94,12 @@ async function init(){
     if(runtime.role!=='admin')$('[data-view="audit"]').classList.add('hidden');
     $('#logout').onclick=async()=>{try{await api('/api/auth/logout',{});location.assign('/login');}catch(error){toast(error.message);}};
   }
+  if(runtime.mode==='browser'){
+    $('#account-user').textContent='Browser-Pilot';$('[data-view="audit"]').classList.add('hidden');
+    $('.local-note').textContent='Browser-KI · kein Mac-Server nötig';
+    $('#storage-notice').textContent='Die KI läuft in deinem Browser. Beim ersten Laden werden Modellgewichte von Hugging Face und Laufzeitdateien von den WebLLM-Projektservern heruntergeladen. Nachrichten und Dokumenttexte werden von dieser App nicht an einen KI-Dienst gesendet. Browserdaten bleiben unverschlüsselt im Browserprofil. Nur Beispieldaten verwenden. Keine gemeinsame Benutzerverwaltung und kein zentrales Audit.';
+
+  }
   if(runtime.mode==='share'){
     $('#account-user').textContent='E-Mail-Freigabe';$('[data-view="audit"]').classList.add('hidden');
     $('.local-note').textContent='Freigabe-Mac · Zugang über Cloudflare';
@@ -100,11 +107,11 @@ async function init(){
   }
   render();
   try{const config=await api('/api/config');for(const p of config.providers){const o=el('option',p.name+(p.ready?'':' · Schlüssel fehlt'));o.value=p.id;o.disabled=!p.ready;$('#provider').append(o);}
-    const local=await api('/api/models');$('#connection').textContent=local.connected?(runtime.mode==='share'?'● Modell auf dem Freigabe-Mac':runtime.mode==='central'?'● Team-Modellserver verbunden':'● Ollama verbunden'):(runtime.mode!=='local'?'Modellserver noch nicht bereit · Betreiber kontaktieren':'Ollama nicht erreichbar · unter ollama.com installieren und starten');
-    for(const model of local.models){const o=el('option');o.value=model;$('#models').append(o);}
+    const local=await api('/api/models');$('#connection').textContent=local.connected?(runtime.mode==='browser'?'Browser-KI · vor erster Antwort Modell laden':runtime.mode==='share'?'● Modell auf dem Freigabe-Mac':runtime.mode==='central'?'● Team-Modellserver verbunden':'● Ollama verbunden'):(runtime.mode==='browser'?'WebGPU nicht verfügbar · aktuelles Chrome/Edge mit Hardwarebeschleunigung verwenden':runtime.mode!=='local'?'Modellserver noch nicht bereit · Betreiber kontaktieren':'Ollama nicht erreichbar · unter ollama.com installieren und starten');
+    for(const model of local.models){const o=el('option',model);o.value=model;(runtime.mode==='browser'?$('#model'):$('#models')).append(o);}
     const provider=config.providers.find(p=>p.id===state.provider&&p.ready);$('#provider').value=provider?.id??'ollama';
     $('#model').value=state.model??(local.models.includes('qwen2.5:3b')?'qwen2.5:3b':local.models[0]??'qwen2.5:3b');
-    if(runtime.mode==='share'&&!local.models.includes($('#model').value)&&local.models.length)$('#model').value=local.models[0];
+    if(['share','browser'].includes(runtime.mode)&&!local.models.includes($('#model').value)&&local.models.length)$('#model').value=local.models[0];
   }catch(err){toast(err.message);}
 }
 init();

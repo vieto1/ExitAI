@@ -1,6 +1,6 @@
 {
   "name": "exitai-local",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -14,13 +14,16 @@
     "verify:browser": "node scripts/verify-browser.mjs",
     "verify:live": "node scripts/verify-live.mjs",
     "verify:https": "node scripts/verify-https.mjs",
-    "share": "node --env-file-if-exists=.env scripts/share.mjs"
+    "share": "node --env-file-if-exists=.env scripts/share.mjs",
+    "build:pages": "node scripts/build-pages.mjs"
   },
   "dependencies": {
     "mammoth": "1.13.0",
     "pdfjs-dist": "6.5.438"
   },
   "devDependencies": {
+    "@mlc-ai/web-llm": "0.2.87",
+    "esbuild": "0.28.2",
     "jszip": "3.10.2",
     "playwright-core": "1.64.1"
   }

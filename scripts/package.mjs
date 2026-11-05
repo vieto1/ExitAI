@@ -1,7 +1,7 @@
 import JSZip from 'jszip';
 import {readdir,readFile,mkdir,writeFile,stat} from 'node:fs/promises';
 const root=new URL('../',import.meta.url),zip=new JSZip();
-const exclude=new Set(['.git','.local','.central','.runtime','.release','downloads','node_modules','.env']);
+const exclude=new Set(['.git','.local','.central','.runtime','.release','downloads','docs','node_modules','.env']);
 async function visit(dir,relative=''){
  for(const item of (await readdir(dir,{withFileTypes:true})).sort((a,b)=>a.name.localeCompare(b.name))){
   if(exclude.has(item.name))continue;
