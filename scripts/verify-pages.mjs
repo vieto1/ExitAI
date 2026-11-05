@@ -19,7 +19,7 @@ try{
   if(process.env.EXITAI_BROWSER_TEST_MODEL)await page.selectOption('#model',process.env.EXITAI_BROWSER_TEST_MODEL);
   await page.fill('#message','Antworte nur mit der Zahl: Was ist 2 plus 3?');await page.click('#preview-button');await page.click('#send');
   const timer=setInterval(async()=>{console.log('Modellstatus:',await page.locator('.pilot-panel [role=status]').textContent().catch(()=>''));},10000);
-  try{await page.waitForSelector('.message.assistant',{timeout:300000});console.log('Echte Browser-KI-Antwort:',await page.locator('.message.assistant').textContent());assert.match(await page.locator('.message.assistant').textContent(),/5|fünf/);}finally{clearInterval(timer);}
+  try{await page.waitForFunction(()=>document.querySelector('.message.assistant')||/Nach drei Minuten|konnte nicht geladen|keine Textantwort/.test(document.querySelector('.pilot-panel [role=status]').textContent),{},{timeout:300000});if(!await page.locator('.message.assistant').count())throw new Error(await page.locator('.pilot-panel [role=status]').textContent());console.log('Echte Browser-KI-Antwort:',await page.locator('.message.assistant').textContent());assert.match(await page.locator('.message.assistant').textContent(),/5|fünf/);}finally{clearInterval(timer);}
  }
  await page.setViewportSize({width:390,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
  assert.deepEqual(apiRequests,[]);assert.deepEqual(errors,[]);
